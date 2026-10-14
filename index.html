@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Scanner - Santillos Doc</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{background:#0f0f0f;color:#fff;max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+.header{background:#111;padding:16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}
+.header h1{font-size:18px;font-weight:800}
+.header span{font-size:10px;background:#5c0f2a;padding:4px 10px;border-radius:20px}
+.camera-box{position:relative;width:100%;height:65vh;background:#000;overflow:hidden}
+#video{width:100%;height:100%;object-fit:cover}
+.scan-guide{position:absolute;inset:12px;border:2px dashed rgba(255,255,255,0.5);border-radius:16px;pointer-events:none}
+.scan-guide::after{content:'Ajusta la hoja dentro del marco';position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);font-size:10px;background:rgba(0,0,0,0.6);padding:4px 10px;border-radius:20px;white-space:nowrap}
+.controls{padding:12px;display:flex;gap:10px;align-items:center;justify-content:center;background:#111}
+.btn-cap{width:70px;height:70px;background:#fff;border-radius:50%;border:6px solid #333;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;font-size:24px}
+.btn-mini{width:44px;height:44px;background:#1e1e1e;border-radius:50%;border:1px solid #333;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.filters{display:flex;gap:8px;padding:10px 12px;overflow-x:auto;background:#151515;border-top:1px solid #222}
+.filter{padding:6px 14px;border-radius:20px;background:#1e1e1e;border:1px solid #333;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer}
+.filter.active{background:#fff;color:#111}
+.pages{padding:12px}
+.pages-title{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.page-card{position:relative;background:#1e1e1e;border-radius:12px;overflow:hidden;border:1px solid #2a2a2a;aspect-ratio:3/4}
+.page-card img{width:100%;height:100%;object-fit:cover}
+.page-num{position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.7);font-size:9px;padding:2px 6px;border-radius:10px}
+.page-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:#ef4444;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer}
+.actions-bottom{position:sticky;bottom:0;background:#111;padding:12px;border-top:1px solid #222;display:flex;gap:10px}
+.btn{flex:1;padding:14px;border-radius:14px;border:none;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-pdf{background:#fff;color:#111}
+.btn-wa{background:#25D366;color:#fff}
+canvas{display:none}
+</style>
+</head>
+<body>
+<div class="header"><h1><i class="fa-solid fa-camera"></i> Scanner Santillos</h1><span id="countPag">0 páginas</span></div>
+
+<div class="camera-box">
+  <video id="video" autoplay playsinline></video>
+  <div class="scan-guide"></div>
+</div>
+
+<div class="controls">
+  <button class="btn-mini" onclick="cambiarCamara()"><i class="fa-solid fa-rotate"></i></button>
+  <button class="btn-cap" onclick="tomarFoto()"><i class="fa-solid fa-camera"></i></button>
+  <button class="btn-mini" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-images"></i></button>
+  <input type="file" id="fileInput" accept="image/*" multiple hidden>
+</div>
+
+<div class="filters">
+  <div class="filter active" data-f="original" onclick="setFiltro('original')">Original</div>
+  <div class="filter" data-f="documento" onclick="setFiltro('documento')">Documento Natural</div>
+  <div class="filter" data-f="bn" onclick="setFiltro('bn')">Blanco y Negro</div>
+  <div class="filter" data-f="gris" onclick="setFiltro('gris')">Mejorar texto</div>
+</div>
+
+<div class="pages">
+  <div class="pages-title"><span><i class="fa-solid fa-file-lines"></i> Páginas escaneadas</span><span style="color:#888;font-size:10px">Toca para reordenar</span></div>
+  <div class="grid" id="gridPages"></div>
+</div>
+
+<div class="actions-bottom">
+  <button class="btn btn-pdf" onclick="generarPDF()"><i class="fa-solid fa-file-pdf"></i> Crear PDF</button>
+  <button class="btn btn-wa" onclick="compartirWhatsApp()"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+</div>
+
+<canvas id="canvas"></canvas>
+<canvas id="canvasFiltro"></canvas>
+
+<script>
+let stream=null, facing='environment', filtroActual='documento';
+let paginas=[];
+
+async function iniciarCamara(){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:facing, width:{ideal:1920}, height:{ideal:1080}}});
+    document.getElementById('video').srcObject=stream;
+  }catch(e){ alert('No se pudo abrir cámara: '+e.message); }
+}
+iniciarCamara();
+
+function cambiarCamara(){
+  facing = facing==='environment'?'user':'environment';
+  iniciarCamara();
+}
+
+function setFiltro(f){
+  filtroActual=f;
+  document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-f="${f}"]`).classList.add('active');
+  renderGrid();
+}
+
+function aplicarFiltro(imgData, tipo){
+  let c = document.getElementById('canvasFiltro');
+  let ctx = c.getContext('2d');
+  c.width=imgData.width; c.height=imgData.height;
+  ctx.drawImage(imgData,0,0);
+  let imageData = ctx.getImageData(0,0,c.width,c.height);
+  let d = imageData.data;
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i], g=d[i+1], b=d[i+2];
+    if(tipo==='bn'){
+      let v = r*0.299+g*0.587+b*0.114 > 140? 255 : 0;
+      d[i]=d[i+1]=d[i+2]=v;
+    } else if(tipo==='gris'){
+      let v = r*0.299+g*0.587+b*0.114;
+      v = Math.min(255, v*1.2 + 10);
+      d[i]=d[i+1]=d[i+2]=v;
+    } else if(tipo==='documento'){
+      // filtro natural: contraste alto + brillo
+      let v = r*0.299+g*0.587+b*0.114;
+      v = (v - 128)*1.6 + 128 + 15;
+      v = Math.max(0,Math.min(255,v));
+      if(v>200) v=255;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+  }
+  ctx.putImageData(imageData,0,0);
+  return c;
+}
+
+function tomarFoto(){
+  let video=document.getElementById('video');
+  let canvas=document.getElementById('canvas');
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+
+  // recortar guía 5%
+  let img = new Image();
+  img.src=canvas.toDataURL('image/jpeg',0.9);
+  img.onload=()=>{
+    let cF = aplicarFiltro(img, filtroActual);
+    paginas.push({src:cF.toDataURL('image/jpeg',0.85), filtro:filtroActual});
+    renderGrid();
+  }
+}
+
+document.getElementById('fileInput').addEventListener('change', e=>{
+  [...e.target.files].forEach(file=>{
+    let r=new FileReader();
+    r.onload=()=>{
+      let img=new Image(); img.src=r.result;
+      img.onload=()=>{
+        let cF=aplicarFiltro(img, filtroActual);
+        paginas.push({src:cF.toDataURL('image/jpeg',0.85), filtro:filtroActual});
+        renderGrid();
+      }
+    }
+    r.readAsDataURL(file);
+  })
+});
+
+function renderGrid(){
+  let grid=document.getElementById('gridPages');
+  grid.innerHTML=paginas.map((p,i)=>`
+    <div class="page-card">
+      <img src="${p.src}">
+      <div class="page-num">#${i+1}</div>
+      <div class="page-del" onclick="borrarPag(${i})"><i class="fa-solid fa-xmark"></i></div>
+    </div>`).join('');
+  document.getElementById('countPag').innerText=paginas.length+' páginas';
+}
+
+function borrarPag(i){ paginas.splice(i,1); renderGrid(); }
+
+async function generarPDF(){
+  if(paginas.length===0){ alert('Toma al menos una foto'); return; }
+  const { jsPDF } = window.jspdf;
+  let pdf = new jsPDF('p','mm','a4');
+  for(let i=0;i<paginas.length;i++){
+    if(i>0) pdf.addPage();
+    let img = paginas[i].src;
+    pdf.addImage(img,'JPEG',0,0,210,297);
+  }
+  pdf.save(`Scan_Santillos_${Date.now()}.pdf`);
+}
+
+async function compartirWhatsApp(){
+  if(paginas.length===0){ alert('No hay páginas'); return; }
+  const { jsPDF } = window.jspdf;
+  let pdf = new jsPDF('p','mm','a4');
+  for(let i=0;i<paginas.length;i++){
+    if(i>0) pdf.addPage();
+    pdf.addImage(paginas[i].src,'JPEG',0,0,210,297);
+  }
+  let blob = pdf.output('blob');
+  let file = new File([blob], `Scanner_Santillos.pdf`, {type:'application/pdf'});
+
+  // Intentar compartir nativo
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Documento escaneado', text:'Te envío el PDF escaneado'});
+      return;
+    }catch(e){}
+  }
+  // Fallback: descargar y abrir WhatsApp
+  let url = URL.createObjectURL(blob);
+  let a=document.createElement('a'); a.href=url; a.download='Scanner_Santillos.pdf'; a.click();
+  setTimeout(()=>{
+    window.open(`https://wa.me/?text=Te envío el documento PDF escaneado - Descarga el archivo y adjúntalo aquí: ${encodeURIComponent(url)}`,'_blank');
+  },800);
+}
+</script>
+</body>
+  </html>
