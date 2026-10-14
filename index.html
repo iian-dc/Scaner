@@ -3,37 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Scanner - Hoja Centrada y Visible</title>
+<title>Scanner HD - Preview Real</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script async src="https://docs.opencv.org/4.9.0/opencv.js" onload="onOpenCvReady()"></script>
+<script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
 body{background:#0a0a0a;color:#fff;max-width:500px;margin:0 auto;min-height:100vh}
 .header{padding:14px 16px;background:#111;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222;position:sticky;top:0;z-index:20}
-.camera{position:relative;width:100%;height:64vh;background:#000;overflow:hidden}
+.camera{position:relative;width:100%;height:60vh;background:#000;overflow:hidden}
 #video{width:100%;height:100%;object-fit:cover}
 .guide{position:absolute;inset:6%;border:2px solid #fff;border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,0.55)}
-.guide::before{content:'';position:absolute;top:0;left:0;width:24px;height:24px;border-top:4px solid #00ff88;border-left:4px solid #00ff88;border-radius:8px 0 0 0}
-.guide::after{content:'CENTRA LA HOJA - Se recortará automático';position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);background:#fff;color:#111;font-size:10px;font-weight:800;padding:5px 14px;border-radius:20px;white-space:nowrap}
-.controls{padding:16px;background:#111;display:flex;justify-content:center;gap:30px;align-items:center}
-.btn-cap{width:80px;height:80px;background:#fff;border-radius:50%;border:8px solid #333;color:#111;font-size:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 30px rgba(255,255,255,0.15)}
+.controls{padding:16px;background:#111;display:flex;justify-content:center;gap:30px}
+.btn-cap{width:80px;height:80px;background:#fff;border-radius:50%;border:8px solid #333;color:#111;font-size:32px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .btn-mini{width:48px;height:48px;background:#1e1e1e;border:1px solid #333;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center}
 
-#editor{position:fixed;inset:0;background:#000;z-index:100;display:none;flex-direction:column}
+#editor, #previewPDF{position:fixed;inset:0;background:#000;z-index:100;display:none;flex-direction:column}
 .edit-top{padding:12px 16px;background:#111;display:flex;justify-content:space-between;align-items:center}
-.edit-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:radial-gradient(#222,#000);overflow:hidden;padding:10px}
-#editCanvas{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.8);background:#fff}
-.corner{position:absolute;width:30px;height:30px;background:#fff;border:3px solid #00ff88;border-radius:50%;transform:translate(-50%,-50%);z-index:10;box-shadow:0 2px 10px rgba(0,0,0,0.5)}
+.edit-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;background:radial-gradient(#222,#000);padding:10px}
+#editCanvas{max-width:100%;max-height:100%;border-radius:12px;background:#fff}
+.corner{position:absolute;width:30px;height:30px;background:#fff;border:3px solid #00ff88;border-radius:50%;transform:translate(-50%,-50%);z-index:10}
 .edit-actions{padding:12px;background:#111;display:flex;gap:10px;border-top:1px solid #222}
 .btn{flex:1;padding:15px;border-radius:14px;border:none;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-cancel{background:#1e1e1e;color:#fff;border:1px solid #333}
 .btn-save{background:#00ff88;color:#111}
 
+/* Preview real PDF */
+.pdf-preview-wrap{flex:1;overflow-y:auto;background:#525659;padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center}
+.pdf-page{width:100%;max-width:360px;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.5);aspect-ratio:210/297;position:relative}
+.pdf-page img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pdf-label{position:absolute;top:8px;left:8px;background:#111;color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:20px}
+
 .pages{padding:12px}
 .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
-.page{background:#fff;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.page{background:#fff;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:3/4}
 .page img{width:100%;height:100%;object-fit:contain;background:#fff}
 .page-del{position:absolute;top:6px;right:6px;width:24px;height:24px;background:#ef4444;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px}
 .page-num{position:absolute;bottom:6px;left:6px;background:#111;color:#fff;font-size:9px;padding:3px 8px;border-radius:20px;font-weight:800}
@@ -41,17 +45,12 @@ body{background:#0a0a0a;color:#fff;max-width:500px;margin:0 auto;min-height:100v
 .btn-pdf{background:#fff;color:#111}
 .btn-wa{background:#25D366;color:#fff}
 .hidden{display:none}
-.status-dot{width:8px;height:8px;background:#00ff88;border-radius:50%;display:inline-block;animation:blink 1s infinite}
-@keyframes blink{50%{opacity:0.3}}
 </style>
 </head>
 <body>
-<div class="header"><h1><i class="fa-solid fa-file-contract"></i> Scanner Pro</h1><span style="font-size:11px"><span class="status-dot"></span> <span id="cvStatus">Cargando IA...</span></span></div>
+<div class="header"><h1><i class="fa-solid fa-file-lines"></i> Scanner HD</h1><span id="count" style="font-size:11px;background:#1e1e1e;padding:4px 10px;border-radius:20px">0 hojas</span></div>
 
-<div class="camera">
-  <video id="video" autoplay playsinline muted></video>
-  <div class="guide"></div>
-</div>
+<div class="camera"><video id="video" autoplay playsinline muted></video><div class="guide"></div></div>
 
 <div class="controls">
   <button class="btn-mini" onclick="fileInput.click()"><i class="fa-solid fa-images"></i></button>
@@ -61,33 +60,38 @@ body{background:#0a0a0a;color:#fff;max-width:500px;margin:0 auto;min-height:100v
 </div>
 
 <div class="pages">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <b style="font-size:13px"><i class="fa-solid fa-layer-group"></i> Documento: <span id="count">0 hojas</span></b>
-    <span style="font-size:10px;color:#00ff88;font-weight:800">HOJA CENTRADA Y VISIBLE</span>
-  </div>
+  <div style="display:flex;justify-content:space-between"><b style="font-size:12px">HOJAS RECORTADAS HD</b><span style="font-size:10px;color:#00ff88">Calidad original sin borroso</span></div>
   <div class="grid" id="grid"></div>
-  <div id="empty" style="text-align:center;padding:30px 10px;color:#555;font-size:12px"><i class="fa-solid fa-camera" style="font-size:30px;margin-bottom:10px;display:block"></i>Toma foto y la hoja se centrará y limpiará automática</div>
 </div>
 
 <div class="bottom">
-  <button class="btn btn-pdf" onclick="crearPDF()"><i class="fa-solid fa-file-pdf"></i> Crear PDF</button>
-  <button class="btn btn-wa" onclick="enviarWA()"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+  <button class="btn btn-pdf" onclick="vistaPreviaPDF()"><i class="fa-solid fa-eye"></i> Ver PDF</button>
+  <button class="btn btn-wa" onclick="vistaPreviaPDF()"><i class="fa-brands fa-whatsapp"></i> Enviar</button>
 </div>
 
+<!-- Editor -->
 <div id="editor">
-  <div class="edit-top"><b style="font-size:13px"><i class="fa-solid fa-crop"></i> Hoja detectada - Centrada y visible</b><span style="font-size:10px;background:#00ff88;color:#111;padding:4px 10px;border-radius:20px;font-weight:800">Ajusta si quieres</span></div>
+  <div class="edit-top"><b style="font-size:13px">1. Ajusta bordes - 2. Verás preview real</b><span style="font-size:10px;background:#00ff88;color:#111;padding:4px 10px;border-radius:20px;font-weight:800">HD</span></div>
   <div class="edit-wrap" id="editWrap">
     <canvas id="editCanvas"></canvas>
     <div class="corner" id="p0"></div><div class="corner" id="p1"></div><div class="corner" id="p2"></div><div class="corner" id="p3"></div>
   </div>
-  <div style="padding:10px;background:#111;display:flex;gap:8px;overflow-x:auto">
-    <button class="btn btn-cancel" style="flex:none;padding:8px 14px;font-size:11px" onclick="autoDetectar()"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Centrar</button>
-    <button class="btn btn-cancel" style="flex:none;padding:8px 14px;font-size:11px" onclick="mejorarVisibilidad()"><i class="fa-solid fa-eye"></i> Más visible</button>
-    <button class="btn btn-cancel" style="flex:none;padding:8px 14px;font-size:11px" onclick="rotar()"><i class="fa-solid fa-rotate"></i> Rotar</button>
-  </div>
   <div class="edit-actions">
     <button class="btn btn-cancel" onclick="cerrarEditor()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
-    <button class="btn btn-save" onclick="confirmar()"><i class="fa-solid fa-check"></i> Confirmar y Guardar</button>
+    <button class="btn btn-save" onclick="mostrarPreviewIntermedio()"><i class="fa-solid fa-eye"></i> Ver cómo queda</button>
+  </div>
+</div>
+
+<!-- Preview Intermedio -->
+<div id="previewPDF">
+  <div class="edit-top">
+    <b id="previewTitle" style="font-size:13px">Así se va a enviar - Calidad HD</b>
+    <button onclick="document.getElementById('previewPDF').style.display='none'" style="background:#222;color:#fff;border:none;padding:6px 12px;border-radius:20px;font-size:11px">Cerrar</button>
+  </div>
+  <div class="pdf-preview-wrap" id="pdfWrap"></div>
+  <div class="edit-actions">
+    <button class="btn btn-cancel" id="btnVolver"><i class="fa-solid fa-arrow-left"></i> Volver</button>
+    <button class="btn btn-save" id="btnConfirmFinal"><i class="fa-solid fa-check"></i> Confirmar</button>
   </div>
 </div>
 
@@ -95,200 +99,128 @@ body{background:#0a0a0a;color:#fff;max-width:500px;margin:0 auto;min-height:100v
 <canvas id="work" class="hidden"></canvas>
 
 <script>
-let stream=null, facing='environment', paginas=[], puntos=[{x:0.08,y:0.08},{x:0.92,y:0.08},{x:0.92,y:0.92},{x:0.08,y:0.92}], imgOrig=null, cvReady=false, drag=-1, visLevel=1;
+let stream=null, facing='environment', paginas=[], puntos=[{x:0.08,y:0.08},{x:0.92,y:0.08},{x:0.92,y:0.92},{x:0.08,y:0.92}], imgOrig=null, cvReady=false, drag=-1, tempHD=null;
 
-function onOpenCvReady(){ cvReady=true; document.getElementById('cvStatus').innerText='IA Lista - Centrado Auto'; }
-
-async function iniciar(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}}});
-  document.getElementById('video').srcObject=stream;
-}
+async function iniciar(){ if(stream) stream.getTracks().forEach(t=>t.stop()); stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}}}); video.srcObject=stream; }
 iniciar();
 function cambiarCamara(){ facing=facing==='environment'?'user':'environment'; iniciar(); }
+function tomarFoto(){ let c=cap; c.width=video.videoWidth; c.height=video.videoHeight; c.getContext('2d').drawImage(video,0,0); abrirEditor(c.toDataURL('image/jpeg',1.0)); }
+fileInput.addEventListener('change', e=>{ let f=e.target.files[0]; if(!f) return; let r=new FileReader(); r.onload=()=>abrirEditor(r.result); r.readAsDataURL(f); });
 
-function tomarFoto(){
-  let v=document.getElementById('video'), c=document.getElementById('cap');
-  c.width=v.videoWidth; c.height=v.videoHeight;
-  c.getContext('2d').drawImage(v,0,0);
-  abrirEditor(c.toDataURL('image/jpeg',0.95));
-}
-fileInput.addEventListener('change', e=>{
-  let f=e.target.files[0]; if(!f) return;
-  let r=new FileReader(); r.onload=()=>abrirEditor(r.result); r.readAsDataURL(f);
-});
-
-function abrirEditor(src){
-  imgOrig=new Image(); imgOrig.src=src;
-  imgOrig.onload=()=>{
-    document.getElementById('editor').style.display='flex';
-    visLevel=1;
-    setTimeout(()=>{ dibujar(); autoDetectar(); },80);
-  }
-}
-function cerrarEditor(){ document.getElementById('editor').style.display='none'; }
-
+function abrirEditor(src){ imgOrig=new Image(); imgOrig.src=src; imgOrig.onload=()=>{ editor.style.display='flex'; setTimeout(()=>{ dibujar(); autoDetectar(); },80); } }
+function cerrarEditor(){ editor.style.display='none'; }
 function dibujar(){
-  let canvas=document.getElementById('editCanvas'), wrap=document.getElementById('editWrap');
-  let maxW=wrap.clientWidth-30, maxH=wrap.clientHeight-30;
+  let c=editCanvas, wrap=editWrap; let maxW=wrap.clientWidth-30, maxH=wrap.clientHeight-30;
   let sc=Math.min(maxW/imgOrig.width, maxH/imgOrig.height);
-  canvas.width=imgOrig.width*sc; canvas.height=imgOrig.height*sc;
-  canvas.getContext('2d').drawImage(imgOrig,0,0,canvas.width,canvas.height);
-  actualizarPuntos();
+  c.width=imgOrig.width*sc; c.height=imgOrig.height*sc;
+  c.getContext('2d').drawImage(imgOrig,0,0,c.width,c.height); actualizarPuntos();
 }
 function actualizarPuntos(){
-  let c=document.getElementById('editCanvas');
-  puntos.forEach((p,i)=>{
-    let el=document.getElementById('p'+i);
-    el.style.left=(c.offsetLeft + p.x*c.width)+'px';
-    el.style.top=(c.offsetTop + p.y*c.height)+'px';
-  });
-  let ctx=c.getContext('2d');
-  ctx.drawImage(imgOrig,0,0,c.width,c.height);
+  let c=editCanvas; puntos.forEach((p,i)=>{ let el=document.getElementById('p'+i); el.style.left=(c.offsetLeft+p.x*c.width)+'px'; el.style.top=(c.offsetTop+p.y*c.height)+'px'; });
+  let ctx=c.getContext('2d'); ctx.drawImage(imgOrig,0,0,c.width,c.height);
   ctx.strokeStyle='#00ff88'; ctx.lineWidth=3; ctx.setLineDash([10,6]);
   ctx.beginPath(); ctx.moveTo(puntos[0].x*c.width,puntos[0].y*c.height);
   for(let i=1;i<4;i++) ctx.lineTo(puntos[i].x*c.width,puntos[i].y*c.height);
-  ctx.closePath(); ctx.stroke();
-  ctx.fillStyle='rgba(0,255,136,0.12)'; ctx.fill();
+  ctx.closePath(); ctx.stroke(); ctx.fillStyle='rgba(0,255,136,0.12)'; ctx.fill();
 }
-
-// Drag
-document.querySelectorAll('.corner').forEach((el,i)=>{
-  el.addEventListener('touchstart',()=>drag=i);
-  el.addEventListener('mousedown',()=>drag=i);
-});
-window.addEventListener('touchmove', e=>{
-  if(drag==-1) return;
-  let c=document.getElementById('editCanvas'), rect=c.getBoundingClientRect();
-  puntos[drag]={x:(e.touches[0].clientX-rect.left)/c.width, y:(e.touches[0].clientY-rect.top)/c.height};
-  puntos[drag].x=Math.max(0,Math.min(1,puntos[drag].x)); puntos[drag].y=Math.max(0,Math.min(1,puntos[drag].y));
-  actualizarPuntos();
-});
-window.addEventListener('mousemove', e=>{
-  if(drag==-1) return;
-  let c=document.getElementById('editCanvas'), rect=c.getBoundingClientRect();
-  puntos[drag]={x:(e.clientX-rect.left)/c.width, y:(e.clientY-rect.top)/c.height};
-  actualizarPuntos();
-});
+document.querySelectorAll('.corner').forEach((el,i)=>{ el.addEventListener('touchstart',()=>drag=i); el.addEventListener('mousedown',()=>drag=i); });
+window.addEventListener('touchmove', e=>{ if(drag==-1) return; let c=editCanvas, r=c.getBoundingClientRect(); puntos[drag]={x:(e.touches[0].clientX-r.left)/c.width, y:(e.touches[0].clientY-r.top)/c.height}; actualizarPuntos(); });
+window.addEventListener('mousemove', e=>{ if(drag==-1) return; let c=editCanvas, r=c.getBoundingClientRect(); puntos[drag]={x:(e.clientX-r.left)/c.width, y:(e.clientY-r.top)/c.height}; actualizarPuntos(); });
 window.addEventListener('touchend',()=>drag=-1); window.addEventListener('mouseup',()=>drag=-1);
 
 function autoDetectar(){
-  if(!cvReady){ dibujar(); return; }
+  if(typeof cv==='undefined') return;
   try{
-    let src=cv.imread(document.getElementById('cap'));
-    let gray=new cv.Mat(); cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
+    let src=cv.imread(cap), gray=new cv.Mat(); cv.cvtColor(src,gray,cv.COLOR_RGBA2GRAY);
     cv.GaussianBlur(gray,gray,new cv.Size(5,5),0);
     let edges=new cv.Mat(); cv.Canny(gray,edges,60,180);
     let contours=new cv.MatVector(), hier=new cv.Mat();
     cv.findContours(edges,contours,hier,cv.RETR_LIST,cv.CHAIN_APPROX_SIMPLE);
-    let maxA=0, best=null;
-    for(let i=0;i<contours.size();i++){
-      let cnt=contours.get(i);
-      let area=cv.contourArea(cnt);
-      if(area>src.rows*src.cols*0.12 && area>maxA){
-        let peri=cv.arcLength(cnt,true); let approx=new cv.Mat();
-        cv.approxPolyDP(cnt,approx,0.02*peri,true);
-        if(approx.rows==4){ maxA=area; best=approx; }
-      }
-    }
-    if(best){
-      let pts=[]; for(let i=0;i<4;i++) pts.push({x:best.data32S[i*2]/src.cols, y:best.data32S[i*2+1]/src.rows});
-      pts.sort((a,b)=>a.y-b.y);
-      let top=pts.slice(0,2).sort((a,b)=>a.x-b.x);
-      let bot=pts.slice(2,4).sort((a,b)=>a.x-b.x);
-      puntos=[top[0],top[1],bot[1],bot[0]];
-    } else {
-      puntos=[{x:0.06,y:0.06},{x:0.94,y:0.06},{x:0.94,y:0.94},{x:0.06,y:0.94}];
-    }
-    actualizarPuntos();
-    src.delete(); gray.delete(); edges.delete(); contours.delete(); hier.delete();
-  }catch(e){ console.log(e); }
+    let maxA=0,best=null;
+    for(let i=0;i<contours.size();i++){ let cnt=contours.get(i); let area=cv.contourArea(cnt); if(area>src.rows*src.cols*0.15 && area>maxA){ let peri=cv.arcLength(cnt,true); let approx=new cv.Mat(); cv.approxPolyDP(cnt,approx,0.02*peri,true); if(approx.rows==4){maxA=area; best=approx;} } }
+    if(best){ let pts=[]; for(let i=0;i<4;i++) pts.push({x:best.data32S[i*2]/src.cols,y:best.data32S[i*2+1]/src.rows}); pts.sort((a,b)=>a.y-b.y); let top=pts.slice(0,2).sort((a,b)=>a.x-b.x); let bot=pts.slice(2,4).sort((a,b)=>a.x-b.x); puntos=[top[0],top[1],bot[1],bot[0]]; }
+    actualizarPuntos(); src.delete(); gray.delete(); edges.delete(); contours.delete(); hier.delete();
+  }catch(e){}
 }
 
-function mejorarVisibilidad(){ visLevel = visLevel>=3?1:visLevel+1; }
-
-function rotar(){
-  let c=document.getElementById('cap'); let t=document.createElement('canvas');
-  t.width=c.height; t.height=c.width;
-  t.getContext('2d').translate(t.width/2,t.height/2); t.getContext('2d').rotate(90*Math.PI/180);
-  t.getContext('2d').drawImage(c,-c.width/2,-c.height/2);
-  c.width=t.width; c.height=t.height; c.getContext('2d').drawImage(t,0,0);
-  imgOrig.src=c.toDataURL(); imgOrig.onload=()=>{ puntos=[{x:0.06,y:0.06},{x:0.94,y:0.06},{x:0.94,y:0.94},{x:0.06,y:0.94}]; dibujar(); };
-}
-
-function confirmar(){
-  let srcC=document.getElementById('cap'), dst=document.getElementById('work');
-  let W=1240, H=1754; dst.width=W; dst.height=H;
-  let srcPts=puntos.map(p=>({x:p.x*srcC.width, y:p.y*srcC.height}));
-
+function procesarHD(){
+  let srcC=cap, dst=work, W=2480, H=3508; // A4 300dpi HD
+  dst.width=W; dst.height=H;
+  let srcPts=puntos.map(p=>({x:p.x*srcC.width,y:p.y*srcC.height}));
   try{
-    if(cvReady){
-      let srcMat=cv.imread(srcC), dstMat=new cv.Mat();
-      let s=cv.matFromArray(4,1,cv.CV_32FC2,[srcPts[0].x,srcPts[0].y,srcPts[1].x,srcPts[1].y,srcPts[2].x,srcPts[2].y,srcPts[3].x,srcPts[3].y]);
-      let d=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,W,0,W,H,0,H]);
-      let M=cv.getPerspectiveTransform(s,d);
-      cv.warpPerspective(srcMat,dstMat,M,new cv.Size(W,H),cv.INTER_LINEAR,cv.BORDER_REPLICATE);
-      cv.imshow(dst,dstMat);
-      srcMat.delete(); dstMat.delete(); s.delete(); d.delete(); M.delete();
-    } else {
-      dst.getContext('2d').drawImage(srcC,0,0,W,H);
-    }
+    let srcMat=cv.imread(srcC), dstMat=new cv.Mat();
+    let s=cv.matFromArray(4,1,cv.CV_32FC2,[srcPts[0].x,srcPts[0].y,srcPts[1].x,srcPts[1].y,srcPts[2].x,srcPts[2].y,srcPts[3].x,srcPts[3].y]);
+    let d=cv.matFromArray(4,1,cv.CV_32FC2,[0,0,W,0,W,H,0,H]);
+    let M=cv.getPerspectiveTransform(s,d);
+    cv.warpPerspective(srcMat,dstMat,M,new cv.Size(W,H),cv.INTER_CUBIC,cv.BORDER_REPLICATE);
+    cv.imshow(dst,dstMat); srcMat.delete(); dstMat.delete(); s.delete(); d.delete(); M.delete();
   }catch(e){ dst.getContext('2d').drawImage(srcC,0,0,W,H); }
 
-  // Hacer super visible - centrado con fondo blanco y mejora natural
-  let ctx=dst.getContext('2d');
-  let id=ctx.getImageData(0,0,W,H), data=id.data;
+  // Mejora visible natural - blanco puro sin borroso
+  let ctx=dst.getContext('2d'), id=ctx.getImageData(0,0,W,H), data=id.data;
   for(let i=0;i<data.length;i+=4){
-    let r=data[i], g=data[i+1], b=data[i+2];
-    let v=r*0.299+g*0.587+b*0.114;
-    // Filtro natural pro: hace la hoja blanca pura y texto negro nítido
-    if(visLevel==1){ // Natural visible
-      v=(v-128)*1.8+128+18;
-      if(v>185) v=255;
-      else if(v<60) v=Math.max(0,v*0.8);
-    } else if(visLevel==2){ // Super visible
-      v=(v-128)*2.1+128+25;
-      v=v>170?255: v<70?0:v;
-    } else { // Ultra
-      v=v>150?255:0;
-    }
+    let v=data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114;
+    v=(v-128)*1.9+128+22; // contraste HD
+    if(v>190) v=255; else if(v<65) v=v*0.7;
     data[i]=data[i+1]=data[i+2]=Math.max(0,Math.min(255,v));
   }
   ctx.putImageData(id,0,0);
+  return dst.toDataURL('image/jpeg',1.0); // calidad 100% sin borroso
+}
 
-  // Centrar con margen blanco limpio
-  let finalC=document.createElement('canvas'); finalC.width=W; finalC.height=H;
-  finalC.getContext('2d').fillStyle='#fff'; finalC.getContext('2d').fillRect(0,0,W,H);
-  finalC.getContext('2d').drawImage(dst,20,20,W-40,H-40);
-
-  paginas.push(finalC.toDataURL('image/jpeg',0.92));
-  render(); cerrarEditor();
+function mostrarPreviewIntermedio(){
+  tempHD=procesarHD();
+  document.getElementById('previewPDF').style.display='flex';
+  document.getElementById('previewTitle').innerText='Preview - Así quedará (HD)';
+  document.getElementById('pdfWrap').innerHTML=`<div class="pdf-page"><img src="${tempHD}"><div class="pdf-label">Preview HD - Centrada y visible</div></div><div style="color:#fff;font-size:11px;text-align:center;background:#222;padding:8px 14px;border-radius:20px">¿Se ve bien? Si está perfecta, dale Confirmar</div>`;
+  document.getElementById('btnVolver').innerHTML='<i class="fa-solid fa-arrow-left"></i> Ajustar bordes';
+  document.getElementById('btnVolver').onclick=()=>{ document.getElementById('previewPDF').style.display='none'; };
+  document.getElementById('btnConfirmFinal').innerHTML='<i class="fa-solid fa-check"></i> Sí, guardar así';
+  document.getElementById('btnConfirmFinal').onclick=()=>{
+    paginas.push(tempHD);
+    render();
+    document.getElementById('previewPDF').style.display='none';
+    cerrarEditor();
+  };
 }
 
 function render(){
-  document.getElementById('grid').innerHTML=paginas.map((s,i)=>`<div class="page"><img src="${s}"><div class="page-num">${i+1}</div><div class="page-del" onclick="paginas.splice(${i},1);render()"><i class="fa-solid fa-xmark"></i></div></div>`).join('');
-  document.getElementById('count').innerText=paginas.length+' hojas';
-  document.getElementById('empty').style.display=paginas.length?'none':'block';
+  document.getElementById('grid').innerHTML=paginas.map((s,i)=>`<div class="page"><img src="${s}"><div class="page-num">${i+1} HD</div><div class="page-del" onclick="paginas.splice(${i},1);render()"><i class="fa-solid fa-xmark"></i></div></div>`).join('');
+  document.getElementById('count').innerText=paginas.length+' hojas HD';
 }
 
-function crearPDF(){
-  if(!paginas.length) return alert('Toma una hoja primero');
-  const {jsPDF}=window.jspdf; let pdf=new jsPDF('p','mm','a4');
-  paginas.forEach((s,i)=>{ if(i>0) pdf.addPage(); pdf.addImage(s,'JPEG',0,0,210,297); });
-  pdf.save(`Documento_${Date.now()}.pdf`);
+function vistaPreviaPDF(){
+  if(!paginas.length) return alert('Toma al menos una hoja');
+  document.getElementById('previewPDF').style.display='flex';
+  document.getElementById('previewTitle').innerText=`Vista previa PDF - ${paginas.length} páginas HD - Así se enviará`;
+  document.getElementById('pdfWrap').innerHTML = paginas.map((s,i)=>`<div class="pdf-page"><img src="${s}"><div class="pdf-label">Página ${i+1} / ${paginas.length} - HD</div></div>`).join('') + `<div style="color:#aaa;font-size:11px;text-align:center;padding:10px">Calidad máxima - Sin borroso - Listo para WhatsApp</div>`;
+
+  document.getElementById('btnVolver').innerHTML='<i class="fa-solid fa-xmark"></i> Cerrar preview';
+  document.getElementById('btnVolver').onclick=()=>document.getElementById('previewPDF').style.display='none';
+
+  document.getElementById('btnConfirmFinal').innerHTML='<i class="fa-brands fa-whatsapp"></i> Enviar por WhatsApp HD';
+  document.getElementById('btnConfirmFinal').onclick=enviarReal;
 }
-async function enviarWA(){
-  if(!paginas.length) return;
-  const {jsPDF}=window.jspdf; let pdf=new jsPDF('p','mm','a4');
-  paginas.forEach((s,i)=>{ if(i>0) pdf.addPage(); pdf.addImage(s,'JPEG',0,0,210,297); });
-  let blob=pdf.output('blob'), file=new File([blob],'Documento.pdf',{type:'application/pdf'});
+
+async function enviarReal(){
+  const {jsPDF}=window.jspdf;
+  let pdf=new jsPDF('p','mm','a4');
+  // HD: usar calidad 1.0 y mantener tamaño real
+  paginas.forEach((s,i)=>{ if(i>0) pdf.addPage(); pdf.addImage(s,'JPEG',0,0,210,297,undefined,'FAST'); });
+  let blob=pdf.output('blob');
+  let file=new File([blob],`Documento_HD_${Date.now()}.pdf`,{type:'application/pdf'});
+
   if(navigator.canShare && navigator.canShare({files:[file]})){
-    await navigator.share({files:[file], title:'Hoja escaneada'});
+    await navigator.share({files:[file], title:'Documento HD', text:'Documento escaneado en HD'});
   } else {
-    let url=URL.createObjectURL(blob); let a=document.createElement('a'); a.href=url; a.download='Documento.pdf'; a.click();
-    setTimeout(()=>window.open('https://wa.me/?text=Te envío el PDF con la hoja centrada y visible','_blank'),500);
+    let url=URL.createObjectURL(blob);
+    let a=document.createElement('a'); a.href=url; a.download=file.name; a.click();
+    setTimeout(()=>window.open('https://wa.me/?text=Te envío el PDF en HD','_blank'),400);
   }
+  document.getElementById('previewPDF').style.display='none';
 }
+function crearPDF(){ vistaPreviaPDF(); }
+function enviarWA(){ vistaPreviaPDF(); }
 </script>
 </body>
 </html>
